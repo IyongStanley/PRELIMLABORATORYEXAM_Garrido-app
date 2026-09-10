@@ -1,16 +1,18 @@
 FROM php:8.2-apache
 
-# Install system dependencies & PHP extensions
+# Install system dependencies & SQLite libraries
 RUN apt-get update && apt-get install -y \
     libpng-dev \
     libonig-dev \
     libxml2-dev \
+    libsqlite3-dev \
     zip \
     unzip \
     git \
     curl
 
-RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
+# Install PHP extensions including pdo_sqlite
+RUN docker-php-ext-install pdo_mysql pdo_sqlite mbstring exif pcntl bcmath gd
 
 # Enable Apache rewrite module
 RUN a2enmod rewrite
@@ -29,8 +31,9 @@ RUN composer install --no-dev --optimize-autoloader
 RUN sed -i -e 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/000-default.conf
 RUN sed -i 's/80/10000/g' /etc/apache2/ports.conf /etc/apache2/sites-available/000-default.conf
 
-# Set directory permissions for Laravel storage
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+# Create empty SQLite database & grant full write permissions
+RUN mkdir -p database && touch database/database.sqlite
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/database
 
 EXPOSE 10000
 
