@@ -30,11 +30,16 @@ RUN composer install --no-dev --optimize-autoloader
 RUN sed -i -e 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/000-default.conf
 RUN sed -i 's/80/10000/g' /etc/apache2/ports.conf /etc/apache2/sites-available/000-default.conf
 
-# Create SQLite database file and set full read/write permissions
+# Create SQLite database file and set full permissions
 RUN mkdir -p database && touch database/database.sqlite
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/database
 RUN chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/database
 
+# Clear pre-cached views and config files from local build
+RUN php artisan config:clear
+RUN php artisan route:clear
+RUN php artisan view:clear
+
 EXPOSE 10000
 
-CMD ["apache2-foreground"]
+CMD ["sh", "-c", "php artisan migrate --force && apache2-foreground"]
